@@ -3,6 +3,7 @@ package rest
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -25,7 +26,6 @@ func NewParseHandler(log *slog.Logger, parser core.ParserService) http.HandlerFu
 		l := log.With(
 			slog.String("location", locationForLogger+"NewParseHandler"),
 		)
-
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			l.Error("failed decode body", "err", err)
 			http.Error(w, "bad request", http.StatusBadRequest)
@@ -80,6 +80,11 @@ func NewNodeHandler(log *slog.Logger, parser core.ParserService) http.HandlerFun
 
 		node, err := parser.GetDetailsNode(ctx, logID, nodeID)
 		if err != nil {
+			if errors.Is(err, core.ErrNotFound) {
+				l.Warn("node not found", "err", err)
+				http.Error(w, "node not found", http.StatusNotFound)
+				return
+			}
 			l.Error("failed get details node", "err", err)
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
@@ -117,6 +122,11 @@ func NewPortHandler(log *slog.Logger, parser core.ParserService) http.HandlerFun
 
 		ports, err := parser.GetPorts(ctx, logID, nodeID)
 		if err != nil {
+			if errors.Is(err, core.ErrNotFound) {
+				l.Warn("port not found", "err", err)
+				http.Error(w, "port not found", http.StatusNotFound)
+				return
+			}
 			l.Error("failed get ports", "err", err)
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
@@ -148,6 +158,16 @@ func NewLogHandler(log *slog.Logger, parser core.ParserService) http.HandlerFunc
 			return
 		}
 		info, err := parser.StatsFileLog(ctx, logID)
+		if err != nil {
+			if errors.Is(err, core.ErrNotFound) {
+				l.Warn("node not found", "err", err)
+				http.Error(w, "node not found", http.StatusNotFound)
+				return
+			}
+			l.Error("failed get stats file log", "err", err)
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
 		resp := toFileLogDTO(info)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)

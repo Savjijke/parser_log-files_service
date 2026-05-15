@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"time"
 )
 
 const locationForLogger = "core/"
@@ -19,6 +20,7 @@ func NewService(db DB, parser Parser, log *slog.Logger) *Service {
 }
 
 func (s *Service) Parse(ctx context.Context, path string, logID int) error {
+	start := time.Now()
 	log := s.log.With(
 		slog.String("location", locationForLogger+"Parse"),
 	)
@@ -37,6 +39,9 @@ func (s *Service) Parse(ctx context.Context, path string, logID int) error {
 	if err != nil {
 		log.Error("failed save parsed log", "err", err)
 	}
+
+	duration := time.Since(start)
+	log.Info("duration time parse", "time", duration)
 
 	return nil
 }
