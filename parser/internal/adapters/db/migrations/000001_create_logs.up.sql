@@ -1,89 +1,61 @@
 BEGIN;
 
-CREATE TABLE logs (
+CREATE TABLE file_logs (
     id BIGSERIAL PRIMARY KEY,
-
-    log_name TEXT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    status TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    nodes_count INT NOT NULL DEFAULT 0,
+    ports_count INT NOT NULL DEFAULT 0
 );
-
 
 CREATE TABLE nodes (
-    id BIGSERIAL PRIMARY KEY,
-
-    log_id BIGINT NOT NULL,
+    log_id BIGINT NOT NULL REFERENCES file_logs(id) ON DELETE CASCADE,
 
     node_guid TEXT NOT NULL,
-    system_image_guid TEXT,
-    port_guid TEXT,
-
     node_desc TEXT,
+    node_type INT,
+    num_ports INT,
 
-    num_ports INTEGER,
-    node_type INTEGER,
+    serial_number TEXT,
+    product_name TEXT,
 
-    class_version INTEGER,
-    base_version INTEGER,
-
-    CONSTRAINT fk_nodes_log
-        FOREIGN KEY (log_id)
-        REFERENCES logs(id)
-        ON DELETE CASCADE,
-
-    CONSTRAINT uq_nodes_log_guid
-        UNIQUE (log_id, node_guid)
+    PRIMARY KEY (log_id, node_guid)
 );
+
+CREATE INDEX idx_nodes_log_id ON nodes(log_id);
 
 
 CREATE TABLE ports (
-    id BIGSERIAL PRIMARY KEY,
+    log_id BIGINT NOT NULL REFERENCES file_logs(id) ON DELETE CASCADE,
 
-    node_id BIGINT NOT NULL,
+    node_guid TEXT NOT NULL,
+    port_guid TEXT NOT NULL,
 
-    port_guid TEXT,
-    port_num INTEGER NOT NULL,
+    port_num INT,
+    port_state INT,
+    port_phy_state INT,
+    link_speed_actv INT,
+    link_width_actv INT,
 
-    lid INTEGER,
-    local_port_num INTEGER,
-
-    link_width_active INTEGER,
-    link_width_supported INTEGER,
-    link_width_enabled INTEGER,
-
-    link_speed_enabled INTEGER,
-    link_speed_active INTEGER,
-    link_speed_supported INTEGER,
-
-    port_phy_state INTEGER,
-    port_state INTEGER,
-
-    mtu_cap INTEGER,
-    nmtu INTEGER,
-
-    vl_cap INTEGER,
-    op_vls INTEGER,
-
-    retrans_active INTEGER,
-    fec_active INTEGER,
-
-    overrun_errors INTEGER,
-    local_phy_errors INTEGER,
-
-    raw_data JSONB,
-
-    CONSTRAINT fk_ports_node
-        FOREIGN KEY (node_id)
-        REFERENCES nodes(id)
-        ON DELETE CASCADE,
-
-    CONSTRAINT uq_ports_node_port
-        UNIQUE (node_id, port_num)
+    PRIMARY KEY (log_id, node_guid, port_guid)
 );
 
+CREATE INDEX idx_ports_log_id ON ports(log_id);
+CREATE INDEX idx_ports_node_guid ON ports(node_guid);
 
-CREATE TABLE nodes_info (
-    id BIGSERIAL PRIMARY KEY,
 
-    node_id BIGINT NOT NULL,
+CREATE TABLE switch_settings (
+    log_id BIGINT NOT NULL REFERENCES file_logs(id) ON DELETE CASCADE,
+
+    node_guid TEXT NOT NULL,
+
+    endianness INT,
+    enable_endianness_per_job INT,
+    reproducibility_disable INT,
+
+    PRIMARY KEY (log_id, node_guid)
+);
+
+CREATE INDEX idx_switch_settings_log_id ON switch_settings(log_id);
 
 COMMIT;

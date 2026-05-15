@@ -7,15 +7,15 @@ import (
 )
 
 type Config struct {
-	DataBaseUrl string `yaml:"data_base_url" env:"DATABASE_URL" env-default:""`
-	Port        int    `yaml:"port" env:"PORT" env-default:"8080"`
-	LogLevel    string `yaml:"log_level" env:"LOG_LEVEL" env-default:"DEBUG"`
+	DataBaseUrl string `env:"DATABASE_URL" env-default:"postgres://postgres:postgres@db:5432/parser?sslmode=disable"`
+	Port        int    `env:"PORT" env-default:"8080"`
+	LogLevel    string `env:"LOG_LEVEL" env-default:"DEBUG"`
 }
 
-func MustLoad(configPath string) Config {
+func MustLoad() Config {
 	var cfg Config
-	if err := cleanenv.ReadConfig(configPath, &cfg); err != nil {
-		log.Fatalf("cannot read config %q: %s", configPath, err)
+	if err := cleanenv.ReadEnv(&cfg); err != nil {
+		log.Fatalf("cannot read config %q: %s", err)
 	}
 	return cfg
 }

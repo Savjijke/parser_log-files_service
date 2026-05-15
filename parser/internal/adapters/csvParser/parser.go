@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync/atomic"
 
 	"github.com/savjijke/parser-log-files-service/internal/core"
 )
@@ -16,39 +15,26 @@ import (
 const locationForLogger = "adapters/csvParser/"
 
 type Parser struct {
-	log     *slog.Logger
-	isParse int32
+	log *slog.Logger
 }
 
 func NewParser(log *slog.Logger) *Parser {
 	return &Parser{log: log}
 }
 
-type Payload struct {
-	nodes    []core.Node
-	ports    []core.Port
-	settings []core.SwitchSettings
-}
-
-func (p *Parser) Parse(path string, logID string) (Payload, error) {
-	log := slog.With(
+func (p *Parser) Parse(path string, id int) (core.Payload, error) {
+	log := p.log.With(
 		slog.String("location", locationForLogger+"Parse"),
 	)
-
-	if !atomic.CompareAndSwapInt32(&p.isParse, 0, 1) {
-		log.Warn("parse in progress")
-		return Payload{}, core.ErrInProgress
-	}
-	defer atomic.StoreInt32(&p.isParse, 0)
 
 	reader, err := zip.OpenReader(path)
 	if err != nil {
 		log.Error("failed open reader", "err", err)
-		return Payload{}, err
+		return core.Payload{}, err
 	}
 	defer reader.Close()
 
-	var payload Payload
+	var payload core.Payload
 
 	for _, file := range reader.File {
 		ext := filepath.Ext(file.Name)
@@ -58,22 +44,26 @@ func (p *Parser) Parse(path string, logID string) (Payload, error) {
 			log.Debug("start read", "file", file.Name, "ext", ".db_csv")
 			nodes, ports, systemsInfo, err := parseDBCSV(file, log)
 			if err != nil {
-				return Payload{}, err
+				return core.Payload{}, err
 			}
-			payload.nodes = nodesToDomain(logID, nodes, systemsInfo)
-			payload.ports = portsToDomain(logID, ports)
+			coreNodes := nodesToDomain(nodes, systemsInfo, id)
+			corePorts := portsToDomain(ports, id)
+			payload.Nodes = coreNodes
+			payload.Ports = corePorts
 		case ".sharp_an_info":
 			log.Debug("start read", "file", file.Name, "ext", ".sharp_an_info")
 			settings, err := parseSharpInfo(file, log)
 			if err != nil {
-				return Payload{}, err
+				return core.Payload{}, err
 			}
-			payload.settings = switchSettingsToDomain(logID, settings)
+			coreSettings := switchSettingsToDomain(settings, id)
+			payload.Settings = coreSettings
 		default:
 			log.Warn("this ext is not supported")
 		}
 
 	}
+
 	return payload, nil
 }
 

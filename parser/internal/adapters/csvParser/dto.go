@@ -37,3 +37,5 @@ type SwitchSettings struct {
 	EnableEndiannessPerJob int
 	ReproducibilityDisable int
 }
+
+

@@ -5,10 +5,11 @@ import "time"
 const (
 	constStatusParsing = "parsing"
 	constStatusReady   = "ready"
+	constStatusFailed  = "failed"
 )
 
-type Log struct {
-	ID         string
+type FileLog struct {
+	ID         int
 	Status     string
 	CreatedAt  time.Time
 	NodesCount int
@@ -17,7 +18,7 @@ type Log struct {
 
 type Node struct {
 	//START_NODES
-	LogID    string
+	LogID    int
 	NodeGUID string
 	NodeDesc string
 	NodeType int
@@ -29,7 +30,7 @@ type Node struct {
 
 //START_PORTS
 type Port struct {
-	LogID         string
+	LogID         int
 	NodeGUID      string
 	PortGUID      string
 	PortNum       int
@@ -41,9 +42,25 @@ type Port struct {
 
 // file with extantions .sharp_an_info
 type SwitchSettings struct {
-	LogID                  string
+	LogID                  int
 	NodeGUID               string
 	Endianness             int
 	EnableEndiannessPerJob int
 	ReproducibilityDisable int
+}
+
+type Payload struct {
+	Nodes    []Node
+	Ports    []Port
+	Settings []SwitchSettings
+}
+
+type Topology struct {
+	Nodes    []TopologyNode
+	Settings []SwitchSettings
+}
+
+type TopologyNode struct {
+	Node  Node
+	Ports []Port
 }

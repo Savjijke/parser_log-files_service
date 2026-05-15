@@ -6,7 +6,7 @@ import (
 	"github.com/savjijke/parser-log-files-service/internal/core"
 )
 
-func nodesToDomain(logID string, nodes []Node, sysInfo []SystemGeneralInformation) []core.Node {
+func nodesToDomain(nodes []Node, sysInfo []SystemGeneralInformation, id int) []core.Node {
 	sysInfoMap := make(map[string]SystemGeneralInformation, len(sysInfo))
 
 	for _, s := range sysInfo {
@@ -19,7 +19,7 @@ func nodesToDomain(logID string, nodes []Node, sysInfo []SystemGeneralInformatio
 		info := sysInfoMap[n.NodeGUID]
 
 		out = append(out, core.Node{
-			LogID:        logID,
+			LogID:        id,
 			NodeGUID:     n.NodeGUID,
 			NodeDesc:     n.NodeDesc,
 			NodeType:     n.NodeType,
@@ -32,12 +32,12 @@ func nodesToDomain(logID string, nodes []Node, sysInfo []SystemGeneralInformatio
 	return out
 }
 
-func portsToDomain(logID string, ports []Port) []core.Port {
+func portsToDomain(ports []Port, id int) []core.Port {
 	out := make([]core.Port, 0, len(ports))
 
 	for _, p := range ports {
 		out = append(out, core.Port{
-			LogID:         logID,
+			LogID:         id,
 			NodeGUID:      p.NodeGUID,
 			PortGUID:      p.PortGUID,
 			PortNum:       p.PortNum,
@@ -51,12 +51,12 @@ func portsToDomain(logID string, ports []Port) []core.Port {
 	return out
 }
 
-func switchSettingsToDomain(logID string, settings []SwitchSettings) []core.SwitchSettings {
+func switchSettingsToDomain(settings []SwitchSettings, id int) []core.SwitchSettings {
 	out := make([]core.SwitchSettings, 0, len(settings))
 
 	for _, s := range settings {
 		out = append(out, core.SwitchSettings{
-			LogID:                  logID,
+			LogID:                  id,
 			NodeGUID:               normalizeSwitchGUID(s.NodeGUID),
 			Endianness:             s.Endianness,
 			EnableEndiannessPerJob: s.EnableEndiannessPerJob,
