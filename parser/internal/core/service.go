@@ -105,6 +105,7 @@ func (s *Service) GetTopology(ctx context.Context, logID int) (Topology, error) 
 		slog.Int("log_id", logID),
 	)
 
+
 	nodes, err := s.db.GetNodesByLogID(ctx, logID)
 	if err != nil {
 		log.Error("failed get nodes", "err", err)
@@ -117,7 +118,7 @@ func (s *Service) GetTopology(ctx context.Context, logID int) (Topology, error) 
 		return Topology{}, err
 	}
 
-	settings, err := s.db.GetSettingsByLogID(ctx, logID)
+	settingsList, err := s.db.GetSettingsByLogID(ctx, logID)
 	if err != nil {
 		log.Error("failed get settings", "err", err)
 		return Topology{}, err
@@ -129,19 +130,56 @@ func (s *Service) GetTopology(ctx context.Context, logID int) (Topology, error) 
 		portMap[p.NodeGUID] = append(portMap[p.NodeGUID], p)
 	}
 
-	topologyNodes := make([]TopologyNode, 0, len(nodes))
+
+	settingsMap := make(map[string]SwitchSettings, len(settingsList))
+
+	for _, s := range settingsList {
+		settingsMap[s.NodeGUID] = s
+	}
+
+
+	groups := map[string][]TopologyNode{
+		"host":   {},
+		"switch": {},
+	}
 
 	for _, n := range nodes {
-		topologyNodes = append(topologyNodes, TopologyNode{
-			Node:  n,
-			Ports: portMap[n.NodeGUID],
+
+		nodeType := "switch"
+		if n.NodeType == 1 {
+			nodeType = "host"
+		}
+
+		groups[nodeType] = append(groups[nodeType], TopologyNode{
+			Node:     n,
+			Ports:    portMap[n.NodeGUID],
+			Settings: getSettingsPtr(settingsMap, n.NodeGUID),
 		})
 	}
 
+
 	result := Topology{
-		Nodes:    topologyNodes,
-		Settings: settings,
+		Groups: []TopologyGroup{
+			{
+				Type:  "host",
+				Nodes: groups["host"],
+			},
+			{
+				Type:  "switch",
+				Nodes: groups["switch"],
+			},
+		},
 	}
 
 	return result, nil
+}
+
+func getSettingsPtr(
+	m map[string]SwitchSettings,
+	nodeGUID string,
+) *SwitchSettings {
+	if s, ok := m[nodeGUID]; ok {
+		return &s
+	}
+	return nil
 }

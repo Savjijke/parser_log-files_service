@@ -1,23 +1,39 @@
-# --- build stage ---
+FROM golang:1.26-alpine AS lint
+
+WORKDIR /app
+
+RUN apk add --no-cache curl
+
+RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
+    | sh -s latest
+
+COPY parser/ ./parser
+WORKDIR /app/parser
+
+RUN go mod download
+
+RUN test -z "$(gofmt -l .)" || (echo "Code is not formatted" && exit 1)
+RUN golangci-lint run
+
+
 FROM golang:1.26-alpine AS builder
 
 WORKDIR /app
 
-
-COPY parser/go.mod parser/go.sum ./
+COPY parser/go.mod parser/go.sum ./parser/
+WORKDIR /app/parser
 RUN go mod download
 
-
-COPY parser/ .
-
+COPY parser/ /app/parser
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o parser ./cmd
+
 
 FROM alpine:3.20
 
 WORKDIR /app
 
-COPY --from=builder /app/parser .
+COPY --from=builder /app/parser/parser .
 
 RUN mkdir -p /app/data
 

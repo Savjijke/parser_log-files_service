@@ -31,7 +31,11 @@ func NewParseHandler(log *slog.Logger, parser core.ParserService) http.HandlerFu
 			http.Error(w, "bad request", http.StatusBadRequest)
 			return
 		}
-		defer r.Body.Close()
+		defer func() {
+			if err := r.Body.Close(); err != nil {
+				log.Error("failed to r.Body.Close()")
+			}
+		}()
 
 		logID, err := parser.CreateID(ctx)
 		if err != nil {
@@ -94,7 +98,10 @@ func NewNodeHandler(log *slog.Logger, parser core.ParserService) http.HandlerFun
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(resp)
+		err = json.NewEncoder(w).Encode(resp)
+		if err != nil {
+			log.Error("failed to encode")
+		}
 
 	}
 }
@@ -134,7 +141,10 @@ func NewPortHandler(log *slog.Logger, parser core.ParserService) http.HandlerFun
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(ports)
+		err = json.NewEncoder(w).Encode(ports)
+		if err != nil {
+			log.Error("failed to encode")
+		}
 
 	}
 }
@@ -171,7 +181,10 @@ func NewLogHandler(log *slog.Logger, parser core.ParserService) http.HandlerFunc
 		resp := toFileLogDTO(info)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(resp)
+		err = json.NewEncoder(w).Encode(resp)
+		if err != nil {
+			log.Error("failed to encode")
+		}
 	}
 }
 
@@ -202,6 +215,9 @@ func NewTopologyHandler(log *slog.Logger, parser core.ParserService) http.Handle
 		resp := mapTopologyToDTO(topology)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(resp)
+		err = json.NewEncoder(w).Encode(resp)
+		if err != nil {
+			log.Error("failed to encode")
+		}
 	}
 }

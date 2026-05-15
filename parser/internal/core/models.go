@@ -56,11 +56,22 @@ type Payload struct {
 }
 
 type Topology struct {
-	Nodes    []TopologyNode
-	Settings []SwitchSettings
+	Groups []TopologyGroup
+	Edges  []TopologyEdge
+}
+
+type TopologyGroup struct {
+	Type  string
+	Nodes []TopologyNode
 }
 
 type TopologyNode struct {
-	Node  Node
-	Ports []Port
+	Node     Node
+	Ports    []Port
+	Settings *SwitchSettings
+}
+
+type TopologyEdge struct {
+	FromPort string
+	ToPort   string
 }

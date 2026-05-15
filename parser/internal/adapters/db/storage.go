@@ -177,7 +177,11 @@ func (db *DB) UpsertNode(ctx context.Context, nodes []core.Node) error {
 		return err
 	}
 
-	defer tx.Rollback()
+	defer func() {
+		if err = tx.Rollback(); err != nil {
+			log.Error("failed to tx rollback")
+		}
+	}()
 
 	stmt, err := tx.PrepareContext(ctx, query)
 	if err != nil {
@@ -185,7 +189,11 @@ func (db *DB) UpsertNode(ctx context.Context, nodes []core.Node) error {
 		return err
 	}
 
-	defer stmt.Close()
+	defer func() {
+		if err = stmt.Close(); err != nil {
+			log.Error("failed to stmt close")
+		}
+	}()
 
 	for _, node := range nodes {
 		_, err := stmt.ExecContext(
@@ -249,7 +257,11 @@ func (db *DB) UpsertPort(ctx context.Context, ports []core.Port) error {
 		return err
 	}
 
-	defer tx.Rollback()
+	defer func() {
+		if err = tx.Rollback(); err != nil {
+			log.Error("failed to tx.Rollback", "err", err)
+		}
+	}()
 
 	stmt, err := tx.PrepareContext(ctx, query)
 	if err != nil {
@@ -257,7 +269,11 @@ func (db *DB) UpsertPort(ctx context.Context, ports []core.Port) error {
 		return err
 	}
 
-	defer stmt.Close()
+	defer func() {
+		if err = stmt.Close(); err != nil {
+			log.Error("failed to stmt.Close()", "err", err)
+		}
+	}()
 
 	for _, port := range ports {
 		_, err := stmt.ExecContext(
@@ -317,7 +333,11 @@ func (db *DB) UpsertSettings(ctx context.Context, sets []core.SwitchSettings) er
 		return err
 	}
 
-	defer tx.Rollback()
+	defer func() {
+		if err = tx.Rollback(); err != nil {
+			log.Error("failed to tx.Rollback()", "err", err)
+		}
+	}()
 
 	stmt, err := tx.PrepareContext(ctx, query)
 	if err != nil {
@@ -325,7 +345,11 @@ func (db *DB) UpsertSettings(ctx context.Context, sets []core.SwitchSettings) er
 		return err
 	}
 
-	defer stmt.Close()
+	defer func() {
+		if err = stmt.Close(); err != nil {
+			log.Error("failed to stmt.Close()", "err", err)
+		}
+	}()
 
 	for _, set := range sets {
 		_, err := stmt.ExecContext(
@@ -410,7 +434,11 @@ func (db *DB) SaveParsedLog(
 		return err
 	}
 
-	defer tx.Rollback()
+	defer func() {
+		if err = tx.Rollback(); err != nil {
+			log.Error("failed to tx.Rollback()", "err", err)
+		}
+	}()
 
 	if len(nodes) > 0 {
 		const query = `
@@ -439,6 +467,11 @@ func (db *DB) SaveParsedLog(
 			log.Error("failed prepare nodes stmt", "err", err)
 			return err
 		}
+		defer func() {
+			if err = stmt.Close(); err != nil {
+				log.Error("failed to stmt.Close()", "err", err)
+			}
+		}()
 
 		for _, node := range nodes {
 			_, err := stmt.ExecContext(
@@ -453,14 +486,17 @@ func (db *DB) SaveParsedLog(
 			)
 
 			if err != nil {
-				stmt.Close()
+				err = stmt.Close()
+				if err != nil {
+					log.Error("failed stmt close", "err", err)
+					return err
+				}
 
 				log.Error("failed exec nodes", "err", err)
 				return err
 			}
 		}
 
-		stmt.Close()
 	}
 
 	if len(ports) > 0 {
@@ -492,6 +528,12 @@ func (db *DB) SaveParsedLog(
 			return err
 		}
 
+		defer func() {
+			if err = stmt.Close(); err != nil {
+				log.Error("failed to stmt.Close()", "err", err)
+			}
+		}()
+
 		for _, port := range ports {
 			_, err := stmt.ExecContext(
 				ctx,
@@ -506,14 +548,12 @@ func (db *DB) SaveParsedLog(
 			)
 
 			if err != nil {
-				stmt.Close()
 
 				log.Error("failed exec ports", "err", err)
 				return err
 			}
 		}
 
-		stmt.Close()
 	}
 
 	if len(settings) > 0 {
@@ -551,14 +591,22 @@ func (db *DB) SaveParsedLog(
 			)
 
 			if err != nil {
-				stmt.Close()
+				err = stmt.Close()
+				if err != nil {
+					log.Error("failed stmt close", "err", err)
+					return err
+				}
 
 				log.Error("failed exec settings", "err", err)
 				return err
 			}
 		}
 
-		stmt.Close()
+		err = stmt.Close()
+		if err != nil {
+			log.Error("failed to stmt.close()", "err", err)
+			return err
+		}
 	}
 
 	err = db.UpdateFileLog(
@@ -653,7 +701,11 @@ func (db *DB) GetPortGUIDsByNode(
 		log.Error("failed query ports", "err", err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err = rows.Close(); err != nil {
+			log.Error("failed to rows.Close()", "err", err)
+		}
+	}()
 
 	var guids []string
 
@@ -706,7 +758,11 @@ func (db *DB) GetNodesByLogID(
 		log.Error("failed query nodes", "err", err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err = rows.Close(); err != nil {
+			log.Error("failed to rows.Close()", "err", err)
+		}
+	}()
 
 	var nodes []core.Node
 
@@ -769,7 +825,11 @@ func (db *DB) GetPortsByLogID(
 		log.Error("failed query ports", "err", err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err = rows.Close(); err != nil {
+			log.Error("failed to rows.Close()", "err", err)
+		}
+	}()
 
 	var ports []core.Port
 
@@ -829,7 +889,11 @@ func (db *DB) GetSettingsByLogID(
 		log.Error("failed query settings", "err", err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err = rows.Close(); err != nil {
+			log.Error("failed to rows.Close()", "err", err)
+		}
+	}()
 
 	var settings []core.SwitchSettings
 

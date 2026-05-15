@@ -32,7 +32,11 @@ func (p *Parser) Parse(path string, id int) (core.Payload, error) {
 		log.Error("failed open reader", "err", err)
 		return core.Payload{}, err
 	}
-	defer reader.Close()
+	defer func() {
+		if err := reader.Close(); err != nil {
+			log.Error("failed to reader close")
+		}
+	}()
 
 	var payload core.Payload
 
@@ -79,7 +83,11 @@ func parseDBCSV(file *zip.File, log *slog.Logger) (
 		log.Error("failed open file", "err", err)
 		return nil, nil, nil, err
 	}
-	defer rc.Close()
+	defer func() {
+		if err := rc.Close(); err != nil {
+			log.Error("failed to reader close")
+		}
+	}()
 
 	scanner := bufio.NewScanner(rc)
 
@@ -211,7 +219,11 @@ func parseSharpInfo(file *zip.File, log *slog.Logger) ([]SwitchSettings, error) 
 		log.Error("failed open file", "err", err)
 		return nil, err
 	}
-	defer rc.Close()
+	defer func() {
+		if err := rc.Close(); err != nil {
+			log.Error("failed to reader close")
+		}
+	}()
 	log.Debug("start parse")
 
 	scanner := bufio.NewScanner(rc)
